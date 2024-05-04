@@ -50,6 +50,35 @@ def findPhoneNumbers (update: Update, context):
     update.message.reply_text(phoneNumbers) # Отправляем сообщение пользователю
     return ConversationHandler.END # Завершаем работу обработчика диалога
 
+def findEmailCommand(update: Update, context):
+    update.message.reply_text('Введите текст для поиска Email-адресов: ')
+
+    return 'findEmail'
+
+
+def findEmail (update: Update, context):
+    logger.info("functioin start")
+    user_input = update.message.text # Получаем текст, содержащий(или нет) Email
+
+    logger.info("User input {user_inpu}")
+
+    EmailRegex = re.compile(r'(([A-Za-z0-9]+[.-_])*[A-Za-z0-9]+@[A-Za-z0-9-]+(\.[A-Z|a-z]{2,})+)')
+
+    EmailList = EmailRegex.findall(user_input) # Ищем номера Email
+
+    if not EmailList: # Обрабатываем случай, когда Email нет
+        update.message.reply_text('Email адресса не найдены')
+        logger.info("Email is not found {user_inpu}")
+        return # Завершаем выполнение функции
+    
+    EmailAddress = '' # Создаем строку, в которую будем записывать Email
+    for i in range(len(EmailList)):
+        # Записываем очередной номер
+        EmailAddress += f'{i+1}. {EmailList[i][0]}\n' 
+
+    update.message.reply_text(EmailAddress) # Отправляем сообщение пользователю
+    return ConversationHandler.END # Завершаем работу обработчика диалога
+
 
 def echo(update: Update, context):
     update.message.reply_text(update.message.text)
@@ -69,11 +98,20 @@ def main():
         },
         fallbacks=[]
     )
+
+    convHandlerFindEmail = ConversationHandler(
+        entry_points=[CommandHandler('findEmail', findEmailCommand)],
+        states={
+            'findEmail': [MessageHandler(Filters.text & ~Filters.command, findEmail)],
+        },
+        fallbacks=[]
+    )
 		
 	# Регистрируем обработчики команд
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CommandHandler("help", helpCommand))
     dp.add_handler(convHandlerFindPhoneNumbers)
+    dp.add_handler(convHandlerFindEmail)
 		
 	# Регистрируем обработчик текстовых сообщений
     dp.add_handler(MessageHandler(Filters.text & ~Filters.command, echo))
