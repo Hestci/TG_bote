@@ -33,7 +33,7 @@ def findPhoneNumbersCommand(update: Update, context):
 def findPhoneNumbers (update: Update, context):
     user_input = update.message.text # Получаем текст, содержащий(или нет) номера телефонов
 
-    phoneNumRegex = re.compile(r'(\+7|7|8)(\-| |)(|\()(\d{3})(|\))(\-| |)(\d{3}(\-| |)\d{2}(\-| |)\d{2})') # Возможно не лучший по скорости но рабочей Regex
+    phoneNumRegex = re.compile(r'((\+7|7|8)(\-| |)(|\()(\d{3})(|\))(\-| |)(\d{3}(\-| |)\d{2}(\-| |)\d{2}))') # Возможно не лучший по скорости но рабочей Regex
 
     phoneNumberList = phoneNumRegex.findall(user_input) # Ищем номера телефонов
 
@@ -43,7 +43,9 @@ def findPhoneNumbers (update: Update, context):
     
     phoneNumbers = '' # Создаем строку, в которую будем записывать номера телефонов
     for i in range(len(phoneNumberList)):
-        phoneNumbers += f'{i+1}. {phoneNumberList[i]}\n' # Записываем очередной номер
+        # Записываем очередной номер
+        phoneNumbers += f'{i+1}. {phoneNumberList[i][0]}\n' 
+        
         
     update.message.reply_text(phoneNumbers) # Отправляем сообщение пользователю
     return ConversationHandler.END # Завершаем работу обработчика диалога
