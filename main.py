@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 load_dotenv()
 TOKEN = os.getenv('BOT_TOKEN')
-chat_id = os.getenv('CHAT_ID')
+#chat_id = os.getenv('CHAT_ID')
 
 def start(update: Update, context):
     user = update.effective_user
@@ -33,7 +33,7 @@ def findPhoneNumbersCommand(update: Update, context):
 def findPhoneNumbers (update: Update, context):
     user_input = update.message.text # Получаем текст, содержащий(или нет) номера телефонов
 
-    phoneNumRegex = re.compile(r'8 \(\d{3}\) \d{3}-\d{2}-\d{2}') # формат 8 (000) 000-00-00
+    phoneNumRegex = re.compile(r'(\+7|7|8)(\-| |)(|\()(\d{3})(|\))(\-| |)(\d{3}(\-| |)\d{2}(\-| |)\d{2})') # Возможно не лучший по скорости но рабочей Regex
 
     phoneNumberList = phoneNumRegex.findall(user_input) # Ищем номера телефонов
 
