@@ -57,10 +57,8 @@ def findEmailCommand(update: Update, context):
 
 
 def findEmail (update: Update, context):
-    logger.info("functioin start")
+    logger.info("functioin findEmail")
     user_input = update.message.text # Получаем текст, содержащий(или нет) Email
-
-    logger.info("User input {user_inpu}")
 
     EmailRegex = re.compile(r'(([A-Za-z0-9]+[.-_])*[A-Za-z0-9]+@[A-Za-z0-9-]+(\.[A-Z|a-z]{2,})+)')
 
@@ -77,6 +75,25 @@ def findEmail (update: Update, context):
         EmailAddress += f'{i+1}. {EmailList[i][0]}\n' 
 
     update.message.reply_text(EmailAddress) # Отправляем сообщение пользователю
+    return ConversationHandler.END # Завершаем работу обработчика диалога
+
+def findPassCommand(update: Update, context):
+    update.message.reply_text('Введите пароль для проверки: ')
+
+    return 'verify_password'
+
+
+def verify_password (update: Update, context):
+    logger.info("functioin findPass")
+    user_input = update.message.text # Получаем текст, содержащий(или нет) Пароль
+
+    PassRegex = re.compile(r'^.*(?=.{8,})(?=.*[a-zA-Z])(?=.*\d)(?=.*[!#$%&?/)/(/* "]).*$')
+    
+    # проверяем пароль на сложность
+    if PassRegex.match(user_input):
+        update.message.reply_text("Пароль сложный") # Отправляем сообщение пользователю
+    else:
+        update.message.reply_text("Пароль простой") # Отправляем сообщение пользователю
     return ConversationHandler.END # Завершаем работу обработчика диалога
 
 
@@ -106,12 +123,21 @@ def main():
         },
         fallbacks=[]
     )
+
+    convHandlerFindPass = ConversationHandler(
+        entry_points=[CommandHandler('verify_password', findPassCommand)],
+        states={
+            'verify_password': [MessageHandler(Filters.text & ~Filters.command, verify_password)],
+        },
+        fallbacks=[]
+    )
 		
 	# Регистрируем обработчики команд
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CommandHandler("help", helpCommand))
     dp.add_handler(convHandlerFindPhoneNumbers)
     dp.add_handler(convHandlerFindEmail)
+    dp.add_handler(convHandlerFindPass)
 		
 	# Регистрируем обработчик текстовых сообщений
     dp.add_handler(MessageHandler(Filters.text & ~Filters.command, echo))
