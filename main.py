@@ -102,14 +102,14 @@ def verify_password (update: Update, context):
     return ConversationHandler.END # Завершаем работу обработчика диалога
 
 def get_unmae (update: Update, context):
-
+    #Подключаемся по ssh
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     client.connect(hostname=host, username=username, password=password, port=port)
-    stdin, stdout, stderr = client.exec_command('uname -mnr')
-    data = stdout.read() + stderr.read()
+    stdin, stdout, stderr = client.exec_command('uname -mnr') #Вводим Об архитектуры процессора, имени хоста системы и версии ядра
+    data = stdout.read() + stderr.read() # считываем вывод
     client.close()
-    data = str(data).replace('\\n', '\n').replace('\\t', '\t')[2:-1].replace(' ', '\n')
+    data = str(data).replace('\\n', '\n').replace('\\t', '\t')[2:-1].replace(' ', '\n') # Заменяем Заменяем символы для поывышения читабельности
     update.message.reply_text(data)
 
 def get_release (update: Update, context):
@@ -129,6 +129,17 @@ def get_uptime (update: Update, context):
     client.connect(hostname=host, username=username, password=password, port=port)
     stdin, stdout, stderr = client.exec_command('uptime -p')
     data = stdout.readline()
+    client.close()
+    update.message.reply_text(data)
+
+def get_df (update: Update, context):
+
+    client = paramiko.SSHClient()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    client.connect(hostname=host, username=username, password=password, port=port)
+    stdin, stdout, stderr = client.exec_command('df -h')
+    data = stdout.read() + stderr.read() # считываем вывод
+    data = str(data).replace('\\n', '\n').replace('\\t', '\t')[2:-1]
     client.close()
     update.message.reply_text(data)
 
@@ -169,6 +180,7 @@ def main():
     dp.add_handler(CommandHandler("get_unmae", get_unmae))
     dp.add_handler(CommandHandler("get_release", get_release))
     dp.add_handler(CommandHandler("get_uptime", get_uptime))
+    dp.add_handler(CommandHandler("get_df", get_df))
     dp.add_handler(convHandlerFindPhoneNumbers)
     dp.add_handler(convHandlerFindEmail)
     dp.add_handler(convHandlerFindPass)
