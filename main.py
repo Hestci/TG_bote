@@ -1,5 +1,6 @@
 from dotenv import load_dotenv
-import os, logging, requests, re, paramiko
+import os, logging, requests, re, paramiko, psycopg2
+from psycopg2 import Error
 from telegram import Update, ForceReply
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, ConversationHandler
 
@@ -12,13 +13,21 @@ logger = logging.getLogger(__name__)
 
 
 load_dotenv()
+#Для ТГ-бота
 TOKEN = os.getenv('BOT_TOKEN')
-host = os.getenv('HOST')
-port = os.getenv('PORT')
-username = os.getenv('USER')
-password = os.getenv('PASSWORD')
 
-#chat_id = os.getenv('CHAT_ID')
+# Для SSH соеденения
+host = os.getenv('SSH_HOST')
+port = os.getenv('SSH_PORT')
+username = os.getenv('SSH_USER')
+password = os.getenv('SSH_PASSWORD')
+
+# Для SQL соеденения
+DB_HOST = os.getenv('DB_HOST')
+DB_USER = os.getenv('DB_USER')
+DB_PASS = os.getenv('DB_PASS')
+DB_PORT = os.getenv('DB_PORT')
+DB_NAME = os.getenv('DB_NAME')
 
 def start(update: Update, context):
     user = update.effective_user
@@ -270,7 +279,70 @@ def choice(update: Update, context):
             update.message.reply_text(data)
             return ConversationHandler.END
         
+def get_repl_logs (update: Update, context):
 
+    client = paramiko.SSHClient()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    client.connect(hostname=host, username=username, password=password, port=port)
+    stdin, stdout, stderr = client.exec_command('grep "replication" /var/log/postgresql/postgresql-14-main.log | tail -n 10')
+    data = stdout.read() + stderr.read() # считываем вывод
+    data = str(data).replace('\\n', '\n').replace('\\t', '\t')[2:-1]
+    client.close()
+    update.message.reply_text(data)
+
+def get_emails (update: Update, context):
+
+    connection = None
+
+    try:
+        connection = psycopg2.connect(user=DB_USER,
+                                    password=DB_PASS,
+                                    host=DB_HOST,
+                                    port=DB_PORT, 
+                                    database=DB_NAME)
+        
+        output = ""
+        cursor = connection.cursor()
+        cursor.execute("SELECT * FROM email;")
+        data = cursor.fetchall()
+        for row in data:
+             output += str(row[0]) + "." + row[1] + "\n"
+        logging.info("Команда успешно выполнена")
+        update.message.reply_text(output)
+    except (Exception, Error) as error:
+        logging.error("Ошибка при работе с PostgreSQL: %s", error)
+    finally:
+        if connection is not None:
+            cursor.close()
+            connection.close()
+
+def get_phone_numbers (update: Update, context):
+
+    connection = None
+
+    try:
+        connection = psycopg2.connect(user=DB_USER,
+                                    password=DB_PASS,
+                                    host=DB_HOST,
+                                    port=DB_PORT, 
+                                    database=DB_NAME)
+        
+        output = ""
+        cursor = connection.cursor()
+        cursor.execute("SELECT * FROM Phonenumbers;")
+        data = cursor.fetchall()
+        for row in data:
+             output += str(row[0]) + ". " + row[1] + "\n"
+        logging.info("Команда успешно выполнена")
+        update.message.reply_text(output)
+    except (Exception, Error) as error:
+        logging.error("Ошибка при работе с PostgreSQL: %s", error)
+    finally:
+        if connection is not None:
+            cursor.close()
+            connection.close()
+
+    
 
 def main():
     updater = Updater(TOKEN, use_context=True)
@@ -326,6 +398,9 @@ def main():
     dp.add_handler(CommandHandler("get_ps", get_ps))
     dp.add_handler(CommandHandler("get_ss", get_ss))
     dp.add_handler(CommandHandler("get_services", get_services))
+    dp.add_handler(CommandHandler("get_repl_logs", get_repl_logs))
+    dp.add_handler(CommandHandler("get_emails", get_emails))
+    dp.add_handler(CommandHandler("get_phone_numbers", get_phone_numbers))
     dp.add_handler(convHandlerApt)
     dp.add_handler(convHandlerFindPhoneNumbers)
     dp.add_handler(convHandlerFindEmail)
