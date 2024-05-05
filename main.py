@@ -1,5 +1,5 @@
 from dotenv import load_dotenv
-import os, logging, requests, re
+import os, logging, requests, re, paramiko
 from telegram import Update, ForceReply
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, ConversationHandler
 
@@ -13,6 +13,11 @@ logger = logging.getLogger(__name__)
 
 load_dotenv()
 TOKEN = os.getenv('BOT_TOKEN')
+host = os.getenv('HOST')
+port = os.getenv('PORT')
+username = os.getenv('USER')
+password = os.getenv('PASSWORD')
+
 #chat_id = os.getenv('CHAT_ID')
 
 def start(update: Update, context):
@@ -96,9 +101,175 @@ def verify_password (update: Update, context):
         update.message.reply_text("Пароль простой") # Отправляем сообщение пользователю
     return ConversationHandler.END # Завершаем работу обработчика диалога
 
+def get_unmae (update: Update, context):
+    #Подключаемся по ssh
+    client = paramiko.SSHClient()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    client.connect(hostname=host, username=username, password=password, port=port)
+    stdin, stdout, stderr = client.exec_command('uname -mnr') #Вводим Об архитектуры процессора, имени хоста системы и версии ядра
+    data = stdout.read() + stderr.read() # считываем вывод
+    client.close()
+    data = str(data).replace('\\n', '\n').replace('\\t', '\t')[2:-1].replace(' ', '\n') # Заменяем Заменяем символы для поывышения читабельности
+    update.message.reply_text(data)
 
-def echo(update: Update, context):
-    update.message.reply_text(update.message.text)
+def get_release (update: Update, context):
+
+    client = paramiko.SSHClient()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    client.connect(hostname=host, username=username, password=password, port=port)
+    stdin, stdout, stderr = client.exec_command('lsb_release -d')
+    data = stdout.readline()
+    client.close()
+    update.message.reply_text(data)
+
+def get_uptime (update: Update, context):
+
+    client = paramiko.SSHClient()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    client.connect(hostname=host, username=username, password=password, port=port)
+    stdin, stdout, stderr = client.exec_command('uptime -p')
+    data = stdout.readline()
+    client.close()
+    update.message.reply_text(data)
+
+def get_df (update: Update, context):
+
+    client = paramiko.SSHClient()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    client.connect(hostname=host, username=username, password=password, port=port)
+    stdin, stdout, stderr = client.exec_command('df -h')
+    data = stdout.read() + stderr.read() # считываем вывод
+    data = str(data).replace('\\n', '\n').replace('\\t', '\t')[2:-1]
+    client.close()
+    update.message.reply_text(data)
+
+def get_free (update: Update, context):
+
+    client = paramiko.SSHClient()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    client.connect(hostname=host, username=username, password=password, port=port)
+    stdin, stdout, stderr = client.exec_command('free -h')
+    data = stdout.read() + stderr.read() # считываем вывод
+    data = str(data).replace('\\n', '\n').replace('\\t', '\t')[2:-1]
+    client.close()
+    update.message.reply_text(data)
+
+def get_mpstat (update: Update, context):
+
+    client = paramiko.SSHClient()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    client.connect(hostname=host, username=username, password=password, port=port)
+    stdin, stdout, stderr = client.exec_command('mpstat')
+    data = stdout.read() + stderr.read() # считываем вывод
+    data = str(data).replace('\\n', '\n').replace('\\t', '\t')[2:-1]
+    client.close()
+    update.message.reply_text(data)
+
+def get_w (update: Update, context):
+
+    client = paramiko.SSHClient()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    client.connect(hostname=host, username=username, password=password, port=port)
+    stdin, stdout, stderr = client.exec_command('w')
+    data = stdout.read() + stderr.read() # считываем вывод
+    data = str(data).replace('\\n', '\n').replace('\\t', '\t')[2:-1]
+    client.close()
+    update.message.reply_text(data)
+
+def get_auths (update: Update, context):
+
+    client = paramiko.SSHClient()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    client.connect(hostname=host, username=username, password=password, port=port)
+    stdin, stdout, stderr = client.exec_command('grep "session opened for user" /var/log/auth.log | tail -n 10')
+    data = stdout.read() + stderr.read() # считываем вывод
+    data = str(data).replace('\\n', '\n').replace('\\t', '\t')[2:-1]
+    client.close()
+    update.message.reply_text(data)
+
+def get_critical (update: Update, context):
+
+    client = paramiko.SSHClient()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    client.connect(hostname=host, username=username, password=password, port=port)
+    stdin, stdout, stderr = client.exec_command('grep -i "priority=critical" /var/log/syslog  | tail -n 5')
+    data = stdout.read() + stderr.read() # считываем вывод
+    data = str(data).replace('\\n', '\n').replace('\\t', '\t')[2:-1]
+    client.close()
+    update.message.reply_text(data)
+
+def get_ps (update: Update, context):
+
+    client = paramiko.SSHClient()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    client.connect(hostname=host, username=username, password=password, port=port)
+    stdin, stdout, stderr = client.exec_command('ps')
+    data = stdout.read() + stderr.read() # считываем вывод
+    data = str(data).replace('\\n', '\n').replace('\\t', '\t')[2:-1]
+    client.close()
+    update.message.reply_text(data)
+
+def get_ss (update: Update, context):
+
+    client = paramiko.SSHClient()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    client.connect(hostname=host, username=username, password=password, port=port)
+    stdin, stdout, stderr = client.exec_command('ss | tail -n 30')
+    data = stdout.read() + stderr.read() # считываем вывод
+    data = str(data).replace('\\n', '\n').replace('\\t', '\t')[2:-1]
+    client.close()
+    update.message.reply_text(data)
+
+def get_services (update: Update, context):
+
+    client = paramiko.SSHClient()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    client.connect(hostname=host, username=username, password=password, port=port)
+    stdin, stdout, stderr = client.exec_command('systemctl  --type=service --state=running')
+    data = stdout.read() + stderr.read() # считываем вывод
+    data = str(data).replace('\\n', '\n').replace('\\t', '\t')[2:-1]
+    client.close()
+    update.message.reply_text(data)
+
+def aptCommand(update: Update, context):
+    update.message.reply_text("Введите:\nAll для вывода всех пакетов\nИмя паекта для поиска пакета")
+    return 'choice'
+
+def choice(update: Update, context):
+    user_input = update.message.text
+
+    if user_input == 'All':
+
+        client = paramiko.SSHClient()
+        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+        client.connect(hostname=host, username=username, password=password, port=port)
+        stdin, stdout, stderr = client.exec_command('apt list | tail -n 20')
+        data = stdout.read() + stderr.read() # считываем вывод
+        data = str(data).replace('\\n', '\n').replace('\\t', '\t')[2:-1].replace('WARNING: apt does not have a stable CLI interface. Use with caution in scripts.', '')
+        client.close()
+
+        update.message.reply_text(data)
+
+        return ConversationHandler.END
+    else: 
+
+        client = paramiko.SSHClient()
+        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+        client.connect(hostname=host, username=username, password=password, port=port)
+        stdin, stdout, stderr = client.exec_command('apt-cache show '+ user_input)
+        data = stdout.read() + stderr.read() # считываем вывод
+        data = str(data).replace('\\n', '\n').replace('\\t', '\t')[2:-1]
+        client.close()
+        
+        if (re.findall('E: No packages found', data)):
+            update.message.reply_text("Несуществующие имя пакета. повторите попытку")
+            return 'choice'
+        else:
+            update.message.reply_text(data)
+            return ConversationHandler.END
+        
 
 
 def main():
@@ -131,16 +302,35 @@ def main():
         },
         fallbacks=[]
     )
-		
+
+    convHandlerApt = ConversationHandler(
+        entry_points=[CommandHandler('get_apt_list', aptCommand)],
+        states={
+            'choice': [MessageHandler(Filters.text & ~Filters.command, choice)],
+        },
+        fallbacks=[]
+    )
+
 	# Регистрируем обработчики команд
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CommandHandler("help", helpCommand))
+    dp.add_handler(CommandHandler("get_unmae", get_unmae))
+    dp.add_handler(CommandHandler("get_release", get_release))
+    dp.add_handler(CommandHandler("get_uptime", get_uptime))
+    dp.add_handler(CommandHandler("get_df", get_df))
+    dp.add_handler(CommandHandler("get_free", get_free))
+    dp.add_handler(CommandHandler("get_mpstat", get_mpstat))
+    dp.add_handler(CommandHandler("get_w", get_w))
+    dp.add_handler(CommandHandler("get_auths", get_auths))
+    dp.add_handler(CommandHandler("get_critical", get_critical))
+    dp.add_handler(CommandHandler("get_ps", get_ps))
+    dp.add_handler(CommandHandler("get_ss", get_ss))
+    dp.add_handler(CommandHandler("get_services", get_services))
+    dp.add_handler(convHandlerApt)
     dp.add_handler(convHandlerFindPhoneNumbers)
     dp.add_handler(convHandlerFindEmail)
     dp.add_handler(convHandlerFindPass)
-		
-	# Регистрируем обработчик текстовых сообщений
-    dp.add_handler(MessageHandler(Filters.text & ~Filters.command, echo))
+
 		
 	# Запускаем бота
     updater.start_polling()
