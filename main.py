@@ -35,7 +35,27 @@ def start(update: Update, context):
 
 
 def helpCommand(update: Update, context):
-    update.message.reply_text('Help!')
+    update.message.reply_text('Данный бот умеет:\n \
+/find_email - Находить почту в тексте \n\
+/find_phone_number  Находить номера телефонов в тексте \n\
+/verify_password Проверять пароль на сложность \n\
+/get_emails Выводит записанные в базу данных Email \n\
+/get_phone_numbers Выводит записанные в базу данных номера телефонов')
+    update.message.reply_text('Осуществляет функции мониторинга на linux сервере \n\
+/get_release Выводит информацию о релизе \n\
+/get_uname Выводит информацию об архитектуры процессора, имени хоста системы и версии ядра. \n\
+/get_uptime Выводит информацию о времени работы \n\
+/get_df Выводит информацию о состоянии файловой системы \n\
+/get_free Выводит информацию о состоянии оперативной памяти \n\
+/get_mpstat Выводит информацию о производительности системы \n\
+/get_w Выводит информацию о работающих в данной системе пользователях. \n\
+/get_auths Выводит последние 10 логов \n\
+/get_critical Выводит последние 5 критических ошибок \n\
+/get_ps Выводит информацию о запущенных процессах \n\
+/get_ss Выводит информацию об используемых портах. \n\
+/get_apt_list Выводит все установленные пакеты или ищет в системе пакет, название которого будет запрошено пользователем \n\
+/get_services Выводит информацию об запущенных сервисах \n\
+/get_repl_logs Вывод логов о репликации SQL сервера')
 
 
 def findPhoneNumbersCommand(update: Update, context):
@@ -89,6 +109,8 @@ def findEmail (update: Update, context):
         EmailAddress += f'{i+1}. {EmailList[i][0]}\n' 
 
     update.message.reply_text(EmailAddress) # Отправляем сообщение пользователю
+    update.message.reply_text("Хотите записать данные номера телефонов в базу данных?")
+    
     return ConversationHandler.END # Завершаем работу обработчика диалога
 
 def findPassCommand(update: Update, context):
