@@ -1,5 +1,5 @@
 from dotenv import load_dotenv
-import os, logging, requests, re
+import os, logging, requests, re, paramiko
 from telegram import Update, ForceReply
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, ConversationHandler
 
@@ -13,6 +13,11 @@ logger = logging.getLogger(__name__)
 
 load_dotenv()
 TOKEN = os.getenv('BOT_TOKEN')
+host = os.getenv('HOST')
+port = os.getenv('PORT')
+username = os.getenv('USER')
+password = os.getenv('PASSWORD')
+
 #chat_id = os.getenv('CHAT_ID')
 
 def start(update: Update, context):
@@ -96,10 +101,36 @@ def verify_password (update: Update, context):
         update.message.reply_text("Пароль простой") # Отправляем сообщение пользователю
     return ConversationHandler.END # Завершаем работу обработчика диалога
 
+def get_unmae (update: Update, context):
 
-def echo(update: Update, context):
-    update.message.reply_text(update.message.text)
+    client = paramiko.SSHClient()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    client.connect(hostname=host, username=username, password=password, port=port)
+    stdin, stdout, stderr = client.exec_command('uname -mnr')
+    data = stdout.read() + stderr.read()
+    client.close()
+    data = str(data).replace('\\n', '\n').replace('\\t', '\t')[2:-1].replace(' ', '\n')
+    update.message.reply_text(data)
 
+def get_release (update: Update, context):
+
+    client = paramiko.SSHClient()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    client.connect(hostname=host, username=username, password=password, port=port)
+    stdin, stdout, stderr = client.exec_command('lsb_release -d')
+    data = stdout.readline()
+    client.close()
+    update.message.reply_text(data)
+
+def get_uptime (update: Update, context):
+
+    client = paramiko.SSHClient()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    client.connect(hostname=host, username=username, password=password, port=port)
+    stdin, stdout, stderr = client.exec_command('uptime -p')
+    data = stdout.readline()
+    client.close()
+    update.message.reply_text(data)
 
 def main():
     updater = Updater(TOKEN, use_context=True)
@@ -135,12 +166,13 @@ def main():
 	# Регистрируем обработчики команд
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CommandHandler("help", helpCommand))
+    dp.add_handler(CommandHandler("get_unmae", get_unmae))
+    dp.add_handler(CommandHandler("get_release", get_release))
+    dp.add_handler(CommandHandler("get_uptime", get_uptime))
     dp.add_handler(convHandlerFindPhoneNumbers)
     dp.add_handler(convHandlerFindEmail)
     dp.add_handler(convHandlerFindPass)
-		
-	# Регистрируем обработчик текстовых сообщений
-    dp.add_handler(MessageHandler(Filters.text & ~Filters.command, echo))
+
 		
 	# Запускаем бота
     updater.start_polling()
