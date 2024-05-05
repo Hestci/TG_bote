@@ -6,7 +6,7 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, Conve
 
 # Подключаем логирование
 logging.basicConfig(
-    filename='logfile.txt', format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO
+    filename='logfile.log', format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO
     )
 
 logger = logging.getLogger(__name__)
@@ -28,6 +28,8 @@ DB_USER = os.getenv('DB_USER')
 DB_PASS = os.getenv('DB_PASS')
 DB_PORT = os.getenv('DB_PORT')
 DB_NAME = os.getenv('DB_NAME')
+
+
 
 def start(update: Update, context):
     user = update.effective_user
@@ -66,31 +68,70 @@ def findPhoneNumbersCommand(update: Update, context):
 
 def findPhoneNumbers (update: Update, context):
     user_input = update.message.text # Получаем текст, содержащий(или нет) номера телефонов
-
+    global Bufer1
+    Bufer1 = ''
     phoneNumRegex = re.compile(r'((\+7|7|8)(\-| |)(|\()(\d{3})(|\))(\-| |)(\d{3}(\-| |)\d{2}(\-| |)\d{2}))') # Возможно не лучший по скорости но рабочей Regex
 
     phoneNumberList = phoneNumRegex.findall(user_input) # Ищем номера телефонов
 
     if not phoneNumberList: # Обрабатываем случай, когда номеров телефонов нет
-        update.message.reply_text('Телефонные номера не найдены')
+        update.message.reply_text('Телефонные номера не найдены.\n Попробуйте снова')
         return # Завершаем выполнение функции
     
     phoneNumbers = '' # Создаем строку, в которую будем записывать номера телефонов
     for i in range(len(phoneNumberList)):
         # Записываем очередной номер
-        phoneNumbers += f'{i+1}. {phoneNumberList[i][0]}\n' 
+        phoneNumbers += f'{i+1}. {phoneNumberList[i][0]}\n'
+        Bufer1 += phoneNumberList[i][0]+','
         
         
     update.message.reply_text(phoneNumbers) # Отправляем сообщение пользователю
-    return ConversationHandler.END # Завершаем работу обработчика диалога
+    update.message.reply_text("Хотите записать данные номера телефонов в базу данных?\n1 - Записать \n2 - Не запиовать")
+    return 'SendPhoneNumber'
 
+def SendPhoneNumber (update: Update, context):
+    user_input = update.message.text
+    phoneNumberList = Bufer1.split(',')[:-1]
+
+    if (user_input == "1"):
+        connection = None
+
+        try:
+            connection = psycopg2.connect(user=DB_USER,
+                                        password=DB_PASS,
+                                        host=DB_HOST,
+                                        port=DB_PORT, 
+                                        database=DB_NAME)
+            
+            cursor = connection.cursor()
+            for i in phoneNumberList:
+                cursor.execute("INSERT INTO Phonenumbers(Phone ) VALUES('"+i+"');")
+            connection.commit()
+            update.message.reply_text("Команда успешно выполнена")
+        except (Exception, Error) as error:
+            update.message.reply_text("Ошибка при работе с БД")
+            logging.error("Ошибка при работе с PostgreSQL: %s", error)
+            return ConversationHandler.END # Завершаем работу обработчика диалога
+        finally:
+            if connection is not None:
+                cursor.close()
+                connection.close()
+            return
+    elif (user_input == "2"):
+        return ConversationHandler.END # Завершаем работу обработчика диалога
+    else: 
+        update.message.reply_text("Неверный ввод! Взаимодействие прекращается")
+        return ConversationHandler.END # Завершаем работу обработчика диалога
+    
 def findEmailCommand(update: Update, context):
-    update.message.reply_text('Введите текст для поиска Email-адресов: ')
+    update.message.reply_text('Введите текст для поиска Email-адресов:')
 
     return 'findEmail'
 
 
 def findEmail (update: Update, context):
+    global Bufer
+    Bufer = ''
     logger.info("functioin findEmail")
     user_input = update.message.text # Получаем текст, содержащий(или нет) Email
 
@@ -99,19 +140,55 @@ def findEmail (update: Update, context):
     EmailList = EmailRegex.findall(user_input) # Ищем номера Email
 
     if not EmailList: # Обрабатываем случай, когда Email нет
-        update.message.reply_text('Email адресса не найдены')
+        update.message.reply_text('Email адресса не найдены. \n Попробуйте снова')
         logger.info("Email is not found {user_inpu}")
         return # Завершаем выполнение функции
     
     EmailAddress = '' # Создаем строку, в которую будем записывать Email
     for i in range(len(EmailList)):
         # Записываем очередной номер
-        EmailAddress += f'{i+1}. {EmailList[i][0]}\n' 
+        EmailAddress += f'{i+1}. {EmailList[i][0]}\n'
+        Bufer += EmailList[i][0]+','
 
     update.message.reply_text(EmailAddress) # Отправляем сообщение пользователю
-    update.message.reply_text("Хотите записать данные номера телефонов в базу данных?")
-    
-    return ConversationHandler.END # Завершаем работу обработчика диалога
+    update.message.reply_text("Хотите записать данные номера телефонов в базу данных?\n1 - Записать \n2 - Не запиовать")
+    return 'SendEmail'
+
+
+def SendEmail (update: Update, context):
+    user_input = update.message.text
+    EmailList = Bufer.split(',')[:-1]
+
+
+    if (user_input == "1"):
+        connection = None
+
+        try:
+            connection = psycopg2.connect(user=DB_USER,
+                                        password=DB_PASS,
+                                        host=DB_HOST,
+                                        port=DB_PORT, 
+                                        database=DB_NAME)
+            
+            cursor = connection.cursor()
+            for i in EmailList:
+                cursor.execute("INSERT INTO Email(Mail) VALUES('"+i+"');")
+            connection.commit()
+            update.message.reply_text("Команда успешно выполнена")
+        except (Exception, Error) as error:
+            update.message.reply_text("Ошибка при работе с БД")
+            logging.error("Ошибка при работе с PostgreSQL: %s", error)
+            return ConversationHandler.END # Завершаем работу обработчика диалога
+        finally:
+            if connection is not None:
+                cursor.close()
+                connection.close()
+            return
+    elif (user_input == "2"):
+        return ConversationHandler.END # Завершаем работу обработчика диалога
+    else: 
+        update.message.reply_text("Неверный ввод! Взаимодействие прекращается")
+        return ConversationHandler.END # Завершаем работу обработчика диалога
 
 def findPassCommand(update: Update, context):
     update.message.reply_text('Введите пароль для проверки: ')
@@ -374,17 +451,19 @@ def main():
 
     # Обработчик диалога
     convHandlerFindPhoneNumbers = ConversationHandler(
-        entry_points=[CommandHandler('findPhoneNumbers', findPhoneNumbersCommand)],
+        entry_points=[CommandHandler('find_phone_number', findPhoneNumbersCommand)],
         states={
             'findPhoneNumbers': [MessageHandler(Filters.text & ~Filters.command, findPhoneNumbers)],
+            'SendPhoneNumber': [MessageHandler(Filters.text & ~Filters.command, SendPhoneNumber)],
         },
         fallbacks=[]
     )
 
     convHandlerFindEmail = ConversationHandler(
-        entry_points=[CommandHandler('findEmail', findEmailCommand)],
+        entry_points=[CommandHandler('find_email', findEmailCommand)],
         states={
             'findEmail': [MessageHandler(Filters.text & ~Filters.command, findEmail)],
+            'SendEmail': [MessageHandler(Filters.text & ~Filters.command, SendEmail)],
         },
         fallbacks=[]
     )
