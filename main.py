@@ -143,6 +143,39 @@ def get_df (update: Update, context):
     client.close()
     update.message.reply_text(data)
 
+def get_free (update: Update, context):
+
+    client = paramiko.SSHClient()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    client.connect(hostname=host, username=username, password=password, port=port)
+    stdin, stdout, stderr = client.exec_command('free -h')
+    data = stdout.read() + stderr.read() # считываем вывод
+    data = str(data).replace('\\n', '\n').replace('\\t', '\t')[2:-1]
+    client.close()
+    update.message.reply_text(data)
+
+def get_mpstat (update: Update, context):
+
+    client = paramiko.SSHClient()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    client.connect(hostname=host, username=username, password=password, port=port)
+    stdin, stdout, stderr = client.exec_command('mpstat')
+    data = stdout.read() + stderr.read() # считываем вывод
+    data = str(data).replace('\\n', '\n').replace('\\t', '\t')[2:-1]
+    client.close()
+    update.message.reply_text(data)
+
+def get_w (update: Update, context):
+
+    client = paramiko.SSHClient()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    client.connect(hostname=host, username=username, password=password, port=port)
+    stdin, stdout, stderr = client.exec_command('w')
+    data = stdout.read() + stderr.read() # считываем вывод
+    data = str(data).replace('\\n', '\n').replace('\\t', '\t')[2:-1]
+    client.close()
+    update.message.reply_text(data)
+
 def main():
     updater = Updater(TOKEN, use_context=True)
 
@@ -181,6 +214,9 @@ def main():
     dp.add_handler(CommandHandler("get_release", get_release))
     dp.add_handler(CommandHandler("get_uptime", get_uptime))
     dp.add_handler(CommandHandler("get_df", get_df))
+    dp.add_handler(CommandHandler("get_free", get_free))
+    dp.add_handler(CommandHandler("get_mpstat", get_mpstat))
+    dp.add_handler(CommandHandler("get_w", get_w))
     dp.add_handler(convHandlerFindPhoneNumbers)
     dp.add_handler(convHandlerFindEmail)
     dp.add_handler(convHandlerFindPass)
