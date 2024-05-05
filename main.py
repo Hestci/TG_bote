@@ -176,6 +176,28 @@ def get_w (update: Update, context):
     client.close()
     update.message.reply_text(data)
 
+def get_auths (update: Update, context):
+
+    client = paramiko.SSHClient()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    client.connect(hostname=host, username=username, password=password, port=port)
+    stdin, stdout, stderr = client.exec_command('grep "session opened for user" /var/log/auth.log | tail -n 10')
+    data = stdout.read() + stderr.read() # считываем вывод
+    data = str(data).replace('\\n', '\n').replace('\\t', '\t')[2:-1]
+    client.close()
+    update.message.reply_text(data)
+
+def get_critical (update: Update, context):
+
+    client = paramiko.SSHClient()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    client.connect(hostname=host, username=username, password=password, port=port)
+    stdin, stdout, stderr = client.exec_command('grep -i "priority=critical" /var/log/syslog  | tail -n 10')
+    data = stdout.read() + stderr.read() # считываем вывод
+    data = str(data).replace('\\n', '\n').replace('\\t', '\t')[2:-1]
+    client.close()
+    update.message.reply_text(data)
+
 def main():
     updater = Updater(TOKEN, use_context=True)
 
@@ -217,6 +239,8 @@ def main():
     dp.add_handler(CommandHandler("get_free", get_free))
     dp.add_handler(CommandHandler("get_mpstat", get_mpstat))
     dp.add_handler(CommandHandler("get_w", get_w))
+    dp.add_handler(CommandHandler("get_auths", get_auths))
+    dp.add_handler(CommandHandler("get_critical", get_critical))
     dp.add_handler(convHandlerFindPhoneNumbers)
     dp.add_handler(convHandlerFindEmail)
     dp.add_handler(convHandlerFindPass)
