@@ -192,11 +192,81 @@ def get_critical (update: Update, context):
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     client.connect(hostname=host, username=username, password=password, port=port)
-    stdin, stdout, stderr = client.exec_command('grep -i "priority=critical" /var/log/syslog  | tail -n 10')
+    stdin, stdout, stderr = client.exec_command('grep -i "priority=critical" /var/log/syslog  | tail -n 5')
     data = stdout.read() + stderr.read() # считываем вывод
     data = str(data).replace('\\n', '\n').replace('\\t', '\t')[2:-1]
     client.close()
     update.message.reply_text(data)
+
+def get_ps (update: Update, context):
+
+    client = paramiko.SSHClient()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    client.connect(hostname=host, username=username, password=password, port=port)
+    stdin, stdout, stderr = client.exec_command('ps')
+    data = stdout.read() + stderr.read() # считываем вывод
+    data = str(data).replace('\\n', '\n').replace('\\t', '\t')[2:-1]
+    client.close()
+    update.message.reply_text(data)
+
+def get_ss (update: Update, context):
+
+    client = paramiko.SSHClient()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    client.connect(hostname=host, username=username, password=password, port=port)
+    stdin, stdout, stderr = client.exec_command('ss | tail -n 30')
+    data = stdout.read() + stderr.read() # считываем вывод
+    data = str(data).replace('\\n', '\n').replace('\\t', '\t')[2:-1]
+    client.close()
+    update.message.reply_text(data)
+
+def get_services (update: Update, context):
+
+    client = paramiko.SSHClient()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    client.connect(hostname=host, username=username, password=password, port=port)
+    stdin, stdout, stderr = client.exec_command('systemctl  --type=service --state=running')
+    data = stdout.read() + stderr.read() # считываем вывод
+    data = str(data).replace('\\n', '\n').replace('\\t', '\t')[2:-1]
+    client.close()
+    update.message.reply_text(data)
+
+def aptCommand(update: Update, context):
+    update.message.reply_text("Введите:\nAll для вывода всех пакетов\nИмя паекта для поиска пакета")
+    return 'choice'
+
+def choice(update: Update, context):
+    user_input = update.message.text
+
+    if user_input == 'All':
+
+        client = paramiko.SSHClient()
+        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+        client.connect(hostname=host, username=username, password=password, port=port)
+        stdin, stdout, stderr = client.exec_command('apt list | tail -n 20')
+        data = stdout.read() + stderr.read() # считываем вывод
+        data = str(data).replace('\\n', '\n').replace('\\t', '\t')[2:-1].replace('WARNING: apt does not have a stable CLI interface. Use with caution in scripts.', '')
+
+        client.close()
+        update.message.reply_text(data)
+
+        return ConversationHandler.END
+    else: 
+
+        client = paramiko.SSHClient()
+        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+        client.connect(hostname=host, username=username, password=password, port=port)
+        stdin, stdout, stderr = client.exec_command('apt-cache show '+ user_input)
+        data = stdout.read() + stderr.read() # считываем вывод
+        data = str(data).replace('\\n', '\n').replace('\\t', '\t')[2:-1]
+
+        client.close()
+        update.message.reply_text(data)
+
+        return ConversationHandler.END
+
 
 def main():
     updater = Updater(TOKEN, use_context=True)
@@ -228,7 +298,15 @@ def main():
         },
         fallbacks=[]
     )
-		
+
+    convHandlerApt = ConversationHandler(
+        entry_points=[CommandHandler('get_apt_list', aptCommand)],
+        states={
+            'choice': [MessageHandler(Filters.text & ~Filters.command, choice)],
+        },
+        fallbacks=[]
+    )
+
 	# Регистрируем обработчики команд
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CommandHandler("help", helpCommand))
@@ -241,6 +319,10 @@ def main():
     dp.add_handler(CommandHandler("get_w", get_w))
     dp.add_handler(CommandHandler("get_auths", get_auths))
     dp.add_handler(CommandHandler("get_critical", get_critical))
+    dp.add_handler(CommandHandler("get_ps", get_ps))
+    dp.add_handler(CommandHandler("get_ss", get_ss))
+    dp.add_handler(CommandHandler("get_services", get_services))
+    dp.add_handler(convHandlerApt)
     dp.add_handler(convHandlerFindPhoneNumbers)
     dp.add_handler(convHandlerFindEmail)
     dp.add_handler(convHandlerFindPass)
