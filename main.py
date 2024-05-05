@@ -247,8 +247,8 @@ def choice(update: Update, context):
         stdin, stdout, stderr = client.exec_command('apt list | tail -n 20')
         data = stdout.read() + stderr.read() # считываем вывод
         data = str(data).replace('\\n', '\n').replace('\\t', '\t')[2:-1].replace('WARNING: apt does not have a stable CLI interface. Use with caution in scripts.', '')
-
         client.close()
+
         update.message.reply_text(data)
 
         return ConversationHandler.END
@@ -261,11 +261,15 @@ def choice(update: Update, context):
         stdin, stdout, stderr = client.exec_command('apt-cache show '+ user_input)
         data = stdout.read() + stderr.read() # считываем вывод
         data = str(data).replace('\\n', '\n').replace('\\t', '\t')[2:-1]
-
         client.close()
-        update.message.reply_text(data)
-
-        return ConversationHandler.END
+        
+        if (re.findall('E: No packages found', data)):
+            update.message.reply_text("Несуществующие имя пакета. повторите попытку")
+            return 'choice'
+        else:
+            update.message.reply_text(data)
+            return ConversationHandler.END
+        
 
 
 def main():
